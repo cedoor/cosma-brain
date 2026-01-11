@@ -1,0 +1,23 @@
+{
+  "name": "cosma-brain",
+  "version": "0.1.0",
+  "description": "Second brain knowledge base with Cosma visualization",
+  "main": "index.js",
+  "scripts": {    
+    "start": "pnpm modelize && pnpm copy && pnpm open",
+    "modelize": "pnpm convert && cosma modelize",
+    "convert": "node scripts/convert-obsidian.js \"../obsidian/1 - Notes/Learning/Brain/\"",
+    "copy": "cp cosmoscope.html ../../../Documents/Brain/",
+    "open": "open cosmoscope.html"
+  },
+  "keywords": [
+    "knowledge-base",
+    "cosma",
+    "obsidian"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@graphlab-fr/cosma": "^2.6.0"
+  }
+}
