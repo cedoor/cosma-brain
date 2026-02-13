@@ -226,6 +226,10 @@ fetch('/dist/brain.json?' + Date.now())
       <div class="content">${renderedContent}</div>
     `;
     const contentEl = panelContent.querySelector('.content');
+    contentEl?.querySelectorAll('a[href^="http://"], a[href^="https://"], a[href^="//"]')?.forEach(a => {
+      a.setAttribute('target', '_blank');
+      a.setAttribute('rel', 'noopener noreferrer');
+    });
     if (contentEl && typeof renderMathInElement === 'function') {
       renderMathInElement(contentEl, {
         delimiters: [
