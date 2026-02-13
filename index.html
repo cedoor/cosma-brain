@@ -27,8 +27,9 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      transform: translateY(100%);
-      transition: transform 0.2s;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s;
       z-index: 20;
     }
     #panel-scroll {
@@ -48,7 +49,10 @@
     #panel-scroll::-webkit-scrollbar-thumb:hover {
       background: rgba(0, 0, 0, 0.35);
     }
-    #panel.open { transform: translateY(0); }
+    #panel.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
     #panel-header {
       flex-shrink: 0;
       display: flex;
