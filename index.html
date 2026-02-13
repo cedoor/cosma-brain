@@ -72,7 +72,7 @@
       text-overflow: ellipsis;
       white-space: nowrap;
     }
-    #panel .meta { font-size: 0.8rem; color: #666; margin-bottom: 0.75rem; }
+    #panel .meta { font-size: 0.8rem; color: #666; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); }
     #panel .content { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
     #panel .content p { margin: 0 0 0.5em; }
     #panel .content p:last-child { margin-bottom: 0; }
@@ -226,6 +226,14 @@ fetch('/dist/brain.json?' + Date.now())
       <div class="content">${renderedContent}</div>
     `;
     const contentEl = panelContent.querySelector('.content');
+    const firstP = contentEl?.querySelector(':scope > p:first-child');
+    if (firstP) {
+      const links = firstP.querySelectorAll('a[href^="#n-"]');
+      const text = firstP.textContent.trim();
+      if (links.length === 1 && links[0].textContent.trim() === text) {
+        firstP.remove();
+      }
+    }
     contentEl?.querySelectorAll('a[href^="http://"], a[href^="https://"], a[href^="//"]')?.forEach(a => {
       a.setAttribute('target', '_blank');
       a.setAttribute('rel', 'noopener noreferrer');
