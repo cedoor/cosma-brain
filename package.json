@@ -1,25 +1,15 @@
 {
-  "name": "cosma-brain",
+  "name": "second-brain",
   "version": "0.1.0",
-  "description": "Second brain knowledge base with Cosma visualization",
+  "description": "Second brain knowledge base with D3 visualization",
   "main": "index.js",
-  "scripts": {    
-    "start": "pnpm obsidian-to-cosma && pnpm copy",
-    "start:open": "pnpm start && pnpm open",
-    "modelize": "pnpm obsidian-to-cosma && cosma modelize",
-    "obsidian-to-cosma": "node scripts/obsidian-to-cosma.js \"../obsidian/1 - Notes/Learning/Brain/\"",
-    "obsidian-to-json": "node scripts/obsidian-to-json.js ./notes",
-    "copy": "scp cosmoscope.html velora:~/brain/",
-    "open": "open cosmoscope.html"
+  "scripts": {
+    "start": "pnpm build && pnpm sync-velora && open index.html",
+    "build": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" ",
+    "build:without-me": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" me",
+    "sync-velora": "scp index.html velora:second-brain/index.html"
   },
-  "keywords": [
-    "knowledge-base",
-    "cosma",
-    "obsidian"
-  ],
-  "author": "",
-  "license": "ISC",
-  "dependencies": {
-    "@graphlab-fr/cosma": "^2.6.0"
-  }
+  "keywords": ["knowledge-base", "obsidian", "d3", "visualization"],
+  "author": "Omar Desogus <me@cedoor.dev>",
+  "license": "MIT"
 }

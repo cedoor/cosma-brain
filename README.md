@@ -1,89 +1,61 @@
-# Cosma Brain
+# Second Brain Visualizer
 
-A tool to convert Obsidian notes to Cosma format and visualize them as an interactive knowledge graph using [Cosma](https://cosma.graphlab.fr/).
+Convert Obsidian notes to an interactive knowledge graph using D3.js.
 
 ## What is this?
 
-This project converts Obsidian markdown notes to Cosma format and visualizes them as an interactive knowledge graph (cosmoscope) that shows connections between ideas, concepts, and topics. It transforms your Obsidian vault into a beautiful, interactive visualization where you can explore relationships between notes.
+Converts Obsidian markdown notes to a structured format and renders them as a force-directed graph where you can explore topic connections. Node size reflects connection count; colors map to root folder.
 
 ## Features
 
-- Converts Obsidian wikilinks (`[[note]]`) to Cosma-compatible format
-- Extracts tags and metadata from Obsidian notes
-- Generates an interactive knowledge graph visualization
-- Customizable node colors and types based on note categories
-- Preserves note structure and relationships
+- Converts Obsidian wikilinks to id-based format
+- Extracts metadata and links for the graph
+- D3 force-directed visualization with pan/zoom
+- Node size by connection count, color by root folder
+- Click nodes to view note content
+- Mobile-friendly layout
 
 ## Setup
 
-1. Install dependencies:
-
-```bash
-pnpm install
-```
-
-2. Configure the conversion path:
-
-Edit `package.json` to update the path in the `convert` script to point to your Obsidian notes folder:
+1. Set the Obsidian vault path in `package.json`:
 
 ```json
-"convert": "node scripts/convert-obsidian.js \"<path-to-your-obsidian-notes-folder>\""
+"build": "node scripts/obsidian-to-brain.js \"<path-to-your-obsidian-brain-folder>\""
 ```
 
-Alternatively, you can run the script directly with a path:
+2. Build:
 
 ```bash
-node scripts/convert-obsidian.js <path-to-obsidian-notes-folder>
+pnpm build
 ```
 
-3. Convert Obsidian Notes:
+3. Open `index.html` in a browser, or run `pnpm start` (builds and opens; adjust the start script if it includes deployment).
 
-Once configured, run:
-
-```bash
-pnpm run convert
-```
-
-This converts Obsidian markdown files and saves them to the `notes/` directory.
-
-4. Generate the cosmoscope:
-
-```bash
-pnpm start
-```
-
-This command:
-- Converts Obsidian notes (if not already done)
-- Runs `cosma modelize` to generate the graph
-- Copies `cosmoscope.html` to your Documents folder
-- Opens the visualization in your browser
-
-The `cosmoscope.html` file is created in the project root and contains the interactive visualization.
+The build embeds `brain.json` into `index.html`, so it works with `file://` without a server.
 
 ## Available Scripts
 
-- `pnpm start` - Full workflow: convert, modelize, copy, and open
-- `pnpm modelize` - Convert notes and generate the cosmoscope
-- `pnpm convert` - Convert Obsidian notes to Cosma format
-- `pnpm open` - Open cosmoscope.html in browser
+- `pnpm build` - Read Obsidian vault, generate brain.json, embed into index.html
+- `pnpm build:without-me` - Same as build but excludes the `me` folder
+- `pnpm start` - Build and open index.html (customize for deployment if needed)
+
+## Script Usage
+
+```
+node scripts/obsidian-to-brain.js <obsidian-brain-folder> [excluded-folders] [--restore]
+```
+
+- `excluded-folders`: Comma-separated top-level folders to exclude (default: `me`)
+- `--restore`: Restore placeholder in index.html without exporting
 
 ## Project Structure
 
-- `notes/` - Converted markdown files (generated from Obsidian notes)
-- `config.yml` - Cosma configuration (colors, types, graph settings)
-- `cosmoscope.html` - Generated interactive visualization
-- `scripts/convert-obsidian.js` - Converter script for Obsidian notes
-
-## Configuration
-
-Edit `config.yml` to customize:
-- Record types and their colors (e.g., `devops`, `philosophy`, `learning`)
-- Graph appearance (background color, text size, arrows)
-- Force simulation settings (attraction forces, distances)
-- Link types and styling
+- `brain.json` - Exported note graph (generated, gitignored)
+- `index.html` - D3 visualization
+- `scripts/obsidian-to-brain.js` - Obsidian vault → brain.json
 
 ## Requirements
 
 - Node.js
 - pnpm
-- Obsidian notes in markdown format with wikilinks
+- Obsidian notes in markdown with wikilinks

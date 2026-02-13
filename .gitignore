@@ -1,14 +1,9 @@
 # Dependencies
 node_modules/
 
-# Output directories
-cosmoscope/
-notes/
-history/
-
 # Output files
-cosmoscope.html
 brain.json
+index.html
 
 # Environment variables
 .env
