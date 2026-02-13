@@ -4,12 +4,15 @@
   "description": "Second brain knowledge base with D3 visualization",
   "main": "index.js",
   "scripts": {
-    "start": "pnpm build && pnpm sync-velora && open index.html",
+    "start": "pnpm build:without-me && serve",
     "build": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" ",
     "build:without-me": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" me",
-    "sync-velora": "scp index.html velora:second-brain/index.html"
+    "sync-velora": "scp index.html velora:second-brain/index.html && scp dist/brain.json velora:second-brain/dist/brain.json"
   },
   "keywords": ["knowledge-base", "obsidian", "d3", "visualization"],
   "author": "Omar Desogus <me@cedoor.dev>",
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "serve": "^14.2.4"
+  }
 }

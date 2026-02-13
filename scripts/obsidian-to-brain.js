@@ -7,15 +7,12 @@
 const fs = require('fs');
 const path = require('path');
 
-const OUTPUT_FILE = path.join(process.cwd(), 'brain.json');
-const INDEX_FILE = path.join(process.cwd(), 'index.html');
-const BRAIN_DATA_PREFIX = 'const BRAIN_DATA = ';
-const BRAIN_DATA_PLACEHOLDER = '"__BRAIN_EMBED__"';
+const OUTPUT_FILE = path.join(process.cwd(), 'dist', 'brain.json');
 
 const TAG_LINE_PREFIX = 'Tags:';
 const LINK_PREFIX = 'Link:';
 const SECOND_BRAIN_TAG = 'Second Brain';
-const DEFAULT_RECORD_TYPE = 'undefined';
+const DEFAULT_RECORD_TYPE = 'note';
 
 const REGEX = {
   tagLink: /\[\[([^\]]+)\]\]/g,
@@ -115,89 +112,27 @@ function extractLinks(body) {
 function bodyToReadable(body, idToTitle) {
   return body.replace(REGEX.linkId, (match, id, display) => {
     if (match.startsWith('!')) return '';
-    return `→ ${idToTitle.get(id) || display || id}`;
+    const text = idToTitle.get(id) || display || id;
+    return `[${text}](#n-${id})`;
   }).replace(/\n{3,}/g, '\n\n').trim();
 }
 
 function parseArgs() {
   const args = process.argv.slice(2);
-  const restore = args.includes('--restore');
-  const filtered = args.filter(a => a !== '--restore');
-  const pathArg = filtered[0];
-  const excludeArg = filtered[1] ?? 'me';
-  if (!restore && !pathArg) {
-    console.error('Usage: node obsidian-to-brain.js <obsidian-brain-folder> [excluded-folders] [--restore]');
+  const pathArg = args[0];
+  const excludeArg = args[1] ?? 'me';
+  if (!pathArg) {
+    console.error('Usage: node obsidian-to-brain.js <obsidian-brain-folder> [excluded-folders]');
     console.error('  excluded-folders: comma-separated, default: me');
-    console.error('  --restore: restore placeholder in index.html (no export)');
     process.exit(1);
   }
-  const brainDir = pathArg ? path.resolve(pathArg) : null;
-  if (pathArg && (!fs.existsSync(brainDir) || !fs.statSync(brainDir).isDirectory())) {
+  const brainDir = path.resolve(pathArg);
+  if (!fs.existsSync(brainDir) || !fs.statSync(brainDir).isDirectory()) {
     console.error(`Error: Folder does not exist: ${brainDir}`);
     process.exit(1);
   }
   const excludedFolders = excludeArg.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  return { brainDir, excludedFolders, restore };
-}
-
-const SCRIPT_CONTINUATION = /};\s*const graphEl\s*=/;
-
-function findDataBounds(html) {
-  const start = html.indexOf(BRAIN_DATA_PREFIX);
-  if (start === -1) return null;
-  let i = start + BRAIN_DATA_PREFIX.length;
-  const first = html[i];
-  if (first === '"') {
-    const end = html.indexOf('";', i + 1);
-    return end === -1 ? null : { start, end: end + 2 };
-  }
-  if (first === '{') {
-    const sentinelMatch = html.slice(start).match(SCRIPT_CONTINUATION);
-    if (sentinelMatch) {
-      const end = start + sentinelMatch.index + 2; // +2 for '};', end is after ';'
-      return { start, end };
-    }
-    let depth = 0;
-    for (; i < html.length; i++) {
-      const c = html[i];
-      if (c === '"') {
-        for (i++; i < html.length; i++) {
-          if (html[i] === '\\') i++;
-          else if (html[i] === '"') break;
-        }
-        continue;
-      }
-      if (c === '{') depth++;
-      else if (c === '}') { depth--; if (depth === 0) return { start, end: html.indexOf(';', i) + 1 }; }
-    }
-  }
-  return null;
-}
-
-function embedBrain() {
-  const json = fs.readFileSync(OUTPUT_FILE, 'utf-8');
-  const escaped = json.replace(/<\/script/gi, '<\\/script');
-  let html = fs.readFileSync(INDEX_FILE, 'utf-8');
-  const bounds = findDataBounds(html);
-  if (!bounds) {
-    console.error('BRAIN_DATA not found in index.html');
-    process.exit(1);
-  }
-  html = html.slice(0, bounds.start) + BRAIN_DATA_PREFIX + escaped + ';' + html.slice(bounds.end);
-  fs.writeFileSync(INDEX_FILE, html, 'utf-8');
-  console.log('Embedded brain.json into index.html');
-}
-
-function restorePlaceholder() {
-  let html = fs.readFileSync(INDEX_FILE, 'utf-8');
-  const bounds = findDataBounds(html);
-  if (!bounds) {
-    console.error('BRAIN_DATA not found in index.html');
-    process.exit(1);
-  }
-  html = html.slice(0, bounds.start) + BRAIN_DATA_PREFIX + BRAIN_DATA_PLACEHOLDER + ';' + html.slice(bounds.end);
-  fs.writeFileSync(INDEX_FILE, html, 'utf-8');
-  console.log('Restored placeholder in index.html');
+  return { brainDir, excludedFolders };
 }
 
 function exportBrain(brainDir, excludedFolders) {
@@ -219,12 +154,12 @@ function exportBrain(brainDir, excludedFolders) {
     const { tags, content: body } = extractTags(content);
     content = resolveLinks(body, titleToId);
     content = addCategoryLinks(content, tags, generateId(filePath), titleToId, idToTitle);
+    const links = extractLinks(content);
     content = removeLeadingTagLinks(content);
 
     const id = generateId(filePath);
     const title = path.parse(filePath).name;
     const type = recordType(tags, filePath, brainDir);
-    const links = extractLinks(content);
     const relPath = path.relative(brainDir, filePath);
 
     notes.push({
@@ -256,14 +191,10 @@ function exportBrain(brainDir, excludedFolders) {
     notes,
   };
 
+  fs.mkdirSync(path.dirname(OUTPUT_FILE), { recursive: true });
   fs.writeFileSync(OUTPUT_FILE, JSON.stringify(output, null, 2), 'utf-8');
   console.log(`Exported ${notes.length} notes to ${OUTPUT_FILE}`);
 }
 
-const { brainDir, excludedFolders, restore } = parseArgs();
-if (restore) {
-  restorePlaceholder();
-} else {
-  exportBrain(brainDir, excludedFolders);
-  embedBrain();
-}
+const { brainDir, excludedFolders } = parseArgs();
+exportBrain(brainDir, excludedFolders);

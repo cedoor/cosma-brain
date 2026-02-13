@@ -29,28 +29,28 @@ Converts Obsidian markdown notes to a structured format and renders them as a fo
 pnpm build
 ```
 
-3. Open `index.html` in a browser, or run `pnpm start` (builds and opens; adjust the start script if it includes deployment).
+3. Run `pnpm start` (builds and starts a local server) or `pnpm dev` (serves without building).
 
-The build embeds `brain.json` into `index.html`, so it works with `file://` without a server.
+The build writes `dist/brain.json`; `index.html` loads it via fetch.
 
 ## Available Scripts
 
-- `pnpm build` - Read Obsidian vault, generate brain.json, embed into index.html
+- `pnpm build` - Read Obsidian vault, generate dist/brain.json
 - `pnpm build:without-me` - Same as build but excludes the `me` folder
-- `pnpm start` - Build and open index.html (customize for deployment if needed)
+- `pnpm start` - Build, sync to velora, and start local server
+- `pnpm dev` - Start local server only (no build)
 
 ## Script Usage
 
 ```
-node scripts/obsidian-to-brain.js <obsidian-brain-folder> [excluded-folders] [--restore]
+node scripts/obsidian-to-brain.js <obsidian-brain-folder> [excluded-folders]
 ```
 
 - `excluded-folders`: Comma-separated top-level folders to exclude (default: `me`)
-- `--restore`: Restore placeholder in index.html without exporting
 
 ## Project Structure
 
-- `brain.json` - Exported note graph (generated, gitignored)
+- `dist/brain.json` - Exported note graph (generated, gitignored)
 - `index.html` - D3 visualization
 - `scripts/obsidian-to-brain.js` - Obsidian vault → brain.json
 

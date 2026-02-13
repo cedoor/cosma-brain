@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Second Brain</title>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked/lib/marked.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    html { height: 100%; }
+    body { margin: 0; font-family: system-ui, sans-serif; overflow: hidden; min-height: 100%; min-height: -webkit-fill-available; }
+    #graph {
+      width: 100%;
+      height: 100vh;
+      height: 100dvh;
+      touch-action: none;
+    }
+    #panel {
+      position: fixed;
+      inset: 0;
+      padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
+      padding-right: max(1rem, env(safe-area-inset-right));
+      background: #fff;
+      color: #1a1a1a;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      transform: translateY(100%);
+      transition: transform 0.2s;
+      z-index: 20;
+    }
+    #panel.open { transform: translateY(0); }
+    #panel h2 { margin: 0 0 0.5rem; font-size: 1.1rem; color: #1a1a1a; }
+    #panel .meta { font-size: 0.8rem; color: #666; margin-bottom: 0.75rem; }
+    #panel .content { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
+    #panel .content p { margin: 0 0 0.5em; }
+    #panel .content p:last-child { margin-bottom: 0; }
+    #panel .content ul, #panel .content ol { margin: 0.5em 0; padding-left: 1.5em; }
+    #panel .content h1, #panel .content h2, #panel .content h3 { margin: 1em 0 0.25em; font-size: inherit; font-weight: 600; }
+    #panel .content a[href^="#n-"] { color: #0066cc; text-decoration: none; }
+    #panel .content a[href^="#n-"]:hover { text-decoration: underline; }
+    #panel .close {
+      position: absolute;
+      top: max(0.5rem, env(safe-area-inset-top));
+      right: max(0.5rem, env(safe-area-inset-right));
+      min-width: 44px; min-height: 44px;
+      padding: 0.5rem;
+      display: flex; align-items: center; justify-content: center;
+      background: none; border: none; color: #666;
+      font-size: 1.5rem;
+      cursor: pointer;
+    }
+    #panel .close:hover, #panel .close:active { color: #1a1a1a; }
+    #panel-content { padding-top: 2.5rem; }
+    .node { cursor: pointer; }
+    .node:hover { stroke: #fff; stroke-width: 2px; }
+    .link { stroke: #a8b5c4; stroke-opacity: 0.7; }
+  </style>
+</head>
+<body>
+  <div id="graph"></div>
+  <div id="panel">
+    <button class="close" id="close" aria-label="Close">×</button>
+    <div id="panel-content"></div>
+  </div>
+
+  <script>
+const graphEl = document.getElementById('graph');
+const panel = document.getElementById('panel');
+const panelContent = document.getElementById('panel-content');
+const closeBtn = document.getElementById('close');
+
+function showError(msg) {
+  graphEl.innerHTML = '<p style="padding:2rem;color:#888;">' + msg + '</p>';
+}
+
+fetch('/dist/brain.json?' + Date.now())
+  .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+  .then(BRAIN_DATA => {
+    const { notes } = BRAIN_DATA;
+  const idToNote = new Map(notes.map(n => [n.id, n]));
+  const nodeCount = new Map();
+  for (const n of notes) {
+    nodeCount.set(n.id, (nodeCount.get(n.id) || 0) + (n.links?.length || 0) + (n.backlinks?.length || 0));
+  }
+  const maxCount = Math.max(...nodeCount.values(), 1);
+
+  const nodes = notes.map(n => ({ ...n, val: nodeCount.get(n.id) || 0 }));
+  const idToIndex = new Map(nodes.map((n, i) => [n.id, i]));
+  const links = [];
+  const seen = new Set();
+  for (const n of notes) {
+    for (const l of n.links || []) {
+      if (idToNote.has(l.targetId) && !seen.has(`${n.id}-${l.targetId}`)) {
+        const si = idToIndex.get(n.id);
+        const ti = idToIndex.get(l.targetId);
+        if (si !== undefined && ti !== undefined) {
+          seen.add(`${n.id}-${l.targetId}`);
+          links.push({ source: si, target: ti });
+        }
+      }
+    }
+  }
+
+  const mainField = (n) => (n.path || n.title).split(/[/\\]/)[0].replace(/\.md$/, '') || n.title;
+  const palette = [...d3.schemePaired, ...d3.schemeSet2].map(c =>
+    c === '#e31a1c' ? '#17becf' : c === '#fb9a99' ? '#8c564b' : c
+  );
+  const color = d3.scaleOrdinal(palette);
+  color.domain([...new Set(notes.map(n => mainField(n)))]);
+
+  const w = graphEl.clientWidth || window.innerWidth;
+  const h = graphEl.clientHeight || window.innerHeight;
+  const isMobile = w < 480;
+  const svg = d3.select('#graph').append('svg').attr('width', w).attr('height', h);
+  const g = svg.append('g');
+
+  const link = g.append('g').attr('class', 'links')
+    .selectAll('line')
+    .data(links)
+    .join('line').attr('class', 'link');
+
+  const node = g.append('g').attr('class', 'nodes')
+    .selectAll('circle')
+    .data(nodes)
+    .join('circle')
+    .attr('class', 'node')
+    .attr('r', d => (isMobile ? 10 : 6) + (isMobile ? 26 : 24) * (d.val / maxCount))
+    .attr('fill', d => color(mainField(d)))
+    .style('stroke', 'transparent')
+    .style('stroke-width', 2)
+    .call(d3.drag()
+      .on('start', dragstarted)
+      .on('drag', dragged)
+      .on('end', dragended));
+
+  const label = g.append('g').attr('class', 'labels')
+    .selectAll('text')
+    .data(nodes)
+    .join('text')
+    .text(d => d.title)
+    .attr('font-size', isMobile ? 12 : 10)
+    .attr('fill', '#1a1a1a')
+    .attr('dx', 8)
+    .attr('dy', 4)
+    .style('pointer-events', 'none');
+
+  function openPanel() { panel.classList.add('open'); }
+  function closePanel() { panel.classList.remove('open'); }
+
+  function showNote(n) {
+    if (!n) return;
+    openPanel();
+    const type = (n.type && n.type !== 'undefined') ? n.type : 'note';
+    let rawContent = n.content ?? '';
+    const sortedLinks = [...(n.links || [])].sort((a, b) => (b.displayText?.length ?? 0) - (a.displayText?.length ?? 0));
+    sortedLinks.forEach(link => {
+      const text = link.displayText || idToNote.get(link.targetId)?.title || link.targetId;
+      const escaped = text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      rawContent = rawContent.replace(new RegExp(`→\\s*${escaped}(?!\\])`, 'g'), `[${text}](#n-${link.targetId})`);
+    });
+    const renderedContent = typeof marked !== 'undefined' ? marked.parse(rawContent) : rawContent;
+    panelContent.innerHTML = `
+      <h2>${n.title}</h2>
+      <div class="meta">${type} · ${n.path ?? ''}</div>
+      <div class="content">${renderedContent}</div>
+    `;
+  }
+
+  node.on('click', (event, d) => {
+    const n = idToNote.get(d.id);
+    showNote(n);
+  });
+
+  panelContent.addEventListener('click', (e) => {
+    const a = e.target.closest('a[href^="#n-"]');
+    if (a) {
+      e.preventDefault();
+      const id = a.getAttribute('href').slice(3);
+      const target = idToNote.get(id);
+      if (target) showNote(target);
+    }
+  });
+
+  closeBtn.onclick = closePanel;
+
+  const simulation = d3.forceSimulation(nodes)
+    .force('link', d3.forceLink(links).distance(60).strength(0.8))
+    .force('charge', d3.forceManyBody().strength(-200))
+    .force('center', d3.forceCenter(w / 2, h / 2))
+    .force('collide', d3.forceCollide(d => (isMobile ? 12 : 10) + (isMobile ? 26 : 24) * (d.val / maxCount)))
+    .on('tick', ticked);
+
+  function ticked() {
+    link
+      .attr('x1', d => d.source.x)
+      .attr('y1', d => d.source.y)
+      .attr('x2', d => d.target.x)
+      .attr('y2', d => d.target.y);
+    node.attr('cx', d => d.x).attr('cy', d => d.y);
+    label.attr('x', d => d.x).attr('y', d => d.y);
+  }
+
+  function dragstarted(event, d) {
+    if (!event.active) simulation.alphaTarget(0.3).restart();
+    d.fx = d.x;
+    d.fy = d.y;
+  }
+  function dragged(event, d) {
+    d.fx = event.x;
+    d.fy = event.y;
+  }
+  function dragended(event, d) {
+    if (!event.active) simulation.alphaTarget(0);
+    d.fx = null;
+    d.fy = null;
+  }
+
+  const zoom = d3.zoom()
+    .scaleExtent([0.2, 4])
+    .tapDistance(isMobile ? 12 : 8)
+    .on('zoom', ({ transform }) => g.attr('transform', transform));
+  svg.call(zoom);
+
+  window.addEventListener('resize', () => {
+    const nw = graphEl.clientWidth || window.innerWidth;
+    const nh = graphEl.clientHeight || window.innerHeight;
+    svg.attr('width', nw).attr('height', nh);
+    simulation.force('center', d3.forceCenter(nw / 2, nh / 2));
+    simulation.alpha(0.3).restart();
+  });
+  })
+  .catch(() => showError('Run <code>pnpm build</code> to generate the visualization.'));
+  </script>
+</body>
+</html>

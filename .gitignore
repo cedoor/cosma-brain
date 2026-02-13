@@ -2,8 +2,7 @@
 node_modules/
 
 # Output files
-brain.json
-index.html
+dist
 
 # Environment variables
 .env
@@ -24,3 +23,6 @@ Thumbs.db
 *.log
 npm-debug.log*
 pnpm-debug.log*
+
+# pnpm
+.pnpm-store/
