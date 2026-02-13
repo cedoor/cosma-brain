@@ -188,11 +188,18 @@ fetch('/dist/brain.json?' + Date.now())
     .style('pointer-events', 'none');
 
   function openPanel() { panel.classList.add('open'); }
-  function closePanel() { panel.classList.remove('open'); }
+  function closePanel() {
+    panel.classList.remove('open');
+    const base = window.location.pathname + window.location.search;
+    if (window.location.hash) history.replaceState({}, '', base);
+  }
 
-  function showNote(n) {
+  function showNote(n, options = {}) {
     if (!n) return;
     openPanel();
+    if (options.pushState !== false) {
+      history.pushState({ noteId: n.id }, '', `#n-${n.id}`);
+    }
     const type = (n.type && n.type !== 'undefined') ? n.type : 'note';
     let rawContent = n.content ?? '';
     const sortedLinks = [...(n.links || [])].sort((a, b) => (b.displayText?.length ?? 0) - (a.displayText?.length ?? 0));
@@ -237,6 +244,25 @@ fetch('/dist/brain.json?' + Date.now())
   });
 
   closeBtn.onclick = closePanel;
+
+  function applyHash() {
+    const m = window.location.hash.match(/^#n-(.+)$/);
+    if (m) {
+      const n = idToNote.get(m[1]);
+      if (n) showNote(n, { pushState: false });
+      else closePanel();
+    } else {
+      panel.classList.remove('open');
+    }
+  }
+
+  window.addEventListener('popstate', applyHash);
+
+  const initialHash = window.location.hash;
+  if (initialHash.startsWith('#n-')) {
+    const n = idToNote.get(initialHash.slice(3));
+    if (n) showNote(n, { pushState: false });
+  }
 
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape' && panel.classList.contains('open')) closePanel();
