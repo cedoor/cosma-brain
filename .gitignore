@@ -8,6 +8,7 @@ history/
 
 # Output files
 cosmoscope.html
+brain.json
 
 # Environment variables
 .env

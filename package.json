@@ -4,10 +4,12 @@
   "description": "Second brain knowledge base with Cosma visualization",
   "main": "index.js",
   "scripts": {    
-    "start": "pnpm modelize && pnpm copy && pnpm open",
-    "modelize": "pnpm convert && cosma modelize",
-    "convert": "node scripts/convert-obsidian.js \"../obsidian/1 - Notes/Learning/Brain/\"",
-    "copy": "cp cosmoscope.html ../../../Documents/Brain/",
+    "start": "pnpm obsidian-to-cosma && pnpm copy",
+    "start:open": "pnpm start && pnpm open",
+    "modelize": "pnpm obsidian-to-cosma && cosma modelize",
+    "obsidian-to-cosma": "node scripts/obsidian-to-cosma.js \"../obsidian/1 - Notes/Learning/Brain/\"",
+    "obsidian-to-json": "node scripts/obsidian-to-json.js ./notes",
+    "copy": "scp cosmoscope.html velora:~/brain/",
     "open": "open cosmoscope.html"
   },
   "keywords": [
