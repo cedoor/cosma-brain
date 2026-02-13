@@ -22,18 +22,51 @@
     #panel {
       position: fixed;
       inset: 0;
-      padding: max(1rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
-      padding-right: max(1rem, env(safe-area-inset-right));
       background: #fff;
       color: #1a1a1a;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
       transform: translateY(100%);
       transition: transform 0.2s;
       z-index: 20;
     }
+    #panel-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
+    }
+    #panel-scroll::-webkit-scrollbar { width: 8px; }
+    #panel-scroll::-webkit-scrollbar-track { background: transparent; }
+    #panel-scroll::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
+    }
+    #panel-scroll::-webkit-scrollbar-thumb:hover {
+      background: rgba(0, 0, 0, 0.35);
+    }
     #panel.open { transform: translateY(0); }
-    #panel h2 { margin: 0 0 0.5rem; font-size: 1.1rem; color: #1a1a1a; }
+    #panel-header {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      min-height: 2.5rem;
+      padding: max(0.5rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right)) 0 max(1rem, env(safe-area-inset-left));
+    }
+    #panel-title {
+      margin: 0;
+      font-size: 1.1rem;
+      color: #1a1a1a;
+      flex: 1;
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
     #panel .meta { font-size: 0.8rem; color: #666; margin-bottom: 0.75rem; }
     #panel .content { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
     #panel .content p { margin: 0 0 0.5em; }
@@ -43,9 +76,7 @@
     #panel .content a[href^="#n-"] { color: #0066cc; text-decoration: none; }
     #panel .content a[href^="#n-"]:hover { text-decoration: underline; }
     #panel .close {
-      position: absolute;
-      top: max(0.5rem, env(safe-area-inset-top));
-      right: max(0.5rem, env(safe-area-inset-right));
+      flex-shrink: 0;
       min-width: 44px; min-height: 44px;
       padding: 0.5rem;
       display: flex; align-items: center; justify-content: center;
@@ -54,7 +85,9 @@
       cursor: pointer;
     }
     #panel .close:hover, #panel .close:active { color: #1a1a1a; }
-    #panel-content { padding-top: 2.5rem; }
+    #panel-content {
+      padding: 1rem max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+    }
     .node { cursor: pointer; }
     .node:hover { stroke: #fff; stroke-width: 2px; }
     .link { stroke: #a8b5c4; stroke-opacity: 0.7; }
@@ -63,13 +96,19 @@
 <body>
   <div id="graph"></div>
   <div id="panel">
-    <button class="close" id="close" aria-label="Close">×</button>
-    <div id="panel-content"></div>
+    <header id="panel-header">
+      <h2 id="panel-title"></h2>
+      <button class="close" id="close" aria-label="Close">×</button>
+    </header>
+    <div id="panel-scroll">
+      <div id="panel-content"></div>
+    </div>
   </div>
 
   <script>
 const graphEl = document.getElementById('graph');
 const panel = document.getElementById('panel');
+const panelTitle = document.getElementById('panel-title');
 const panelContent = document.getElementById('panel-content');
 const closeBtn = document.getElementById('close');
 
@@ -163,8 +202,8 @@ fetch('/dist/brain.json?' + Date.now())
       rawContent = rawContent.replace(new RegExp(`→\\s*${escaped}(?!\\])`, 'g'), `[${text}](#n-${link.targetId})`);
     });
     const renderedContent = typeof marked !== 'undefined' ? marked.parse(rawContent) : rawContent;
+    panelTitle.textContent = n.title;
     panelContent.innerHTML = `
-      <h2>${n.title}</h2>
       <div class="meta">${type} · ${n.path ?? ''}</div>
       <div class="content">${renderedContent}</div>
     `;
