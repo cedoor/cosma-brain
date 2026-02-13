@@ -199,6 +199,10 @@ fetch('/dist/brain.json?' + Date.now())
 
   closeBtn.onclick = closePanel;
 
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && panel.classList.contains('open')) closePanel();
+  });
+
   const simulation = d3.forceSimulation(nodes)
     .force('link', d3.forceLink(links).distance(60).strength(0.8))
     .force('charge', d3.forceManyBody().strength(-200))
