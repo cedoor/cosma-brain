@@ -4,6 +4,7 @@
  * Reads Obsidian vault, resolves wikilinks, exports note graph for D3 viz.
  */
 
+const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
@@ -17,8 +18,8 @@ const DEFAULT_RECORD_TYPE = 'note';
 const REGEX = {
   tagLink: /\[\[([^\]]+)\]\]/g,
   wikilink: /(!?)\[\[([^\]]+)\]\]/g,
-  linkId: /!?\[\[(\d{14})(?:\|([^\]]+))?\]\]/g,
-  linkIdExtract: /\[\[(\d{14})/,
+  linkId: /!?\[\[(\d{14}(?:-[a-f0-9]{4})?)(?:\|([^\]]+))?\]\]/g,
+  linkIdExtract: /\[\[(\d{14}(?:-[a-f0-9]{4})?)/,
   leadingLinks: /^(\[\[[^\]]+\]\]\s*)+/,
 };
 
@@ -112,7 +113,7 @@ function extractLinks(body) {
 function bodyToReadable(body, idToTitle) {
   return body.replace(REGEX.linkId, (match, id, display) => {
     if (match.startsWith('!')) return '';
-    const text = idToTitle.get(id) || display || id;
+    const text = display || idToTitle.get(id) || id;
     return `[${text}](#n-${id})`;
   }).replace(/\n{3,}/g, '\n\n').trim();
 }
@@ -137,10 +138,19 @@ function parseArgs() {
 
 function exportBrain(brainDir, excludedFolders) {
   const allFiles = findMarkdownFiles(brainDir);
+  const pathToId = new Map();
+  const idToPath = new Map();
+  for (const fp of allFiles) {
+    let id = generateId(fp);
+    if (idToPath.has(id) && idToPath.get(id) !== fp) {
+      id = `${id}-${crypto.createHash('md5').update(fp).digest('hex').slice(0, 4)}`;
+    }
+    idToPath.set(id, fp);
+    pathToId.set(fp, id);
+  }
   const titleToId = new Map();
   const idToTitle = new Map();
-  for (const fp of allFiles) {
-    const id = generateId(fp);
+  for (const [fp, id] of pathToId) {
     const title = path.parse(fp).name;
     titleToId.set(title, id);
     idToTitle.set(id, title);
@@ -153,11 +163,11 @@ function exportBrain(brainDir, excludedFolders) {
     let content = fs.readFileSync(filePath, 'utf-8');
     const { tags, content: body } = extractTags(content);
     content = resolveLinks(body, titleToId);
-    content = addCategoryLinks(content, tags, generateId(filePath), titleToId, idToTitle);
+    content = addCategoryLinks(content, tags, pathToId.get(filePath), titleToId, idToTitle);
     const links = extractLinks(content);
     content = removeLeadingTagLinks(content);
 
-    const id = generateId(filePath);
+    const id = pathToId.get(filePath);
     const title = path.parse(filePath).name;
     const type = recordType(tags, filePath, brainDir);
     const relPath = path.relative(brainDir, filePath);
