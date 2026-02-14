@@ -2,7 +2,7 @@
 /**
  * Convert Obsidian brain notes directly to brain.json.
  * Reads Obsidian vault, resolves wikilinks, exports note graph for D3 viz.
- * Requires BRAIN_PATH and EXCLUDED_FOLDERS in .env.
+ * Requires BRAIN_PATH in .env. Optional: BRAIN_IMAGES_PATH, EXCLUDED_FOLDERS.
  */
 
 require('dotenv').config();
@@ -11,6 +11,8 @@ const fs = require('fs');
 const path = require('path');
 
 const OUTPUT_FILE = path.join(process.cwd(), 'dist', 'brain.json');
+const DIST_IMAGES_DIR = path.join(process.cwd(), 'dist', 'images');
+const IMAGE_EXTENSIONS = ['.png', '.webp', '.jpg', '.jpeg', '.gif', '.svg'];
 
 const TAG_LINE_PREFIX = 'Tags:';
 const LINK_PREFIX = 'Link:';
@@ -20,6 +22,7 @@ const DEFAULT_RECORD_TYPE = 'note';
 const REGEX = {
   tagLink: /\[\[([^\]]+)\]\]/g,
   wikilink: /(!?)\[\[([^\]]+)\]\]/g,
+  imageWikilink: /!\[\[([^\]]+)\]\]/g,
   linkId: /!?\[\[(\d{14}(?:-[a-f0-9]{4})?)(?:\|([^\]]+))?\]\]/g,
   linkIdExtract: /\[\[(\d{14}(?:-[a-f0-9]{4})?)/,
   leadingLinks: /^(\[\[[^\]]+\]\]\s*)+/,
@@ -39,6 +42,60 @@ function findMarkdownFiles(dir, list = []) {
     else if (file.endsWith('.md')) list.push(fp);
   }
   return list;
+}
+
+function findImageFiles(dir, list = []) {
+  if (!fs.existsSync(dir) || !fs.statSync(dir).isDirectory()) return list;
+  for (const file of fs.readdirSync(dir)) {
+    const fp = path.join(dir, file);
+    const stat = fs.statSync(fp);
+    if (stat.isDirectory()) findImageFiles(fp, list);
+    else if (IMAGE_EXTENSIONS.includes(path.extname(file).toLowerCase())) list.push(fp);
+  }
+  return list;
+}
+
+function buildImageMap(imagesDir) {
+  const files = findImageFiles(imagesDir);
+  const byName = new Map();
+  for (const fp of files) {
+    const name = path.basename(fp);
+    byName.set(name, fp);
+    const base = path.basename(fp, path.extname(fp));
+    if (!byName.has(base)) byName.set(base, fp);
+  }
+  return byName;
+}
+
+function resolveImagePath(ref, imageMap) {
+  const trimmed = ref.trim();
+  if (imageMap.has(trimmed)) return imageMap.get(trimmed);
+  for (const ext of IMAGE_EXTENSIONS) {
+    const candidate = trimmed + ext;
+    if (imageMap.has(candidate)) return imageMap.get(candidate);
+  }
+  return null;
+}
+
+function resolveImagesInContent(content, imageMap, distImagesDir) {
+  if (!imageMap) return content.replace(REGEX.imageWikilink, () => '');
+  fs.mkdirSync(distImagesDir, { recursive: true });
+  return content.replace(REGEX.imageWikilink, (match, inner) => {
+    const [namePart, sizePart] = inner.split('|').map(s => s?.trim());
+    const srcPath = resolveImagePath(namePart || inner, imageMap);
+    if (!srcPath) return '';
+    const destName = path.basename(srcPath);
+    const destPath = path.join(distImagesDir, destName);
+    fs.copyFileSync(srcPath, destPath);
+    let sizeAttr = '';
+    if (sizePart) {
+      const [w, h] = sizePart.split(/x/i).map(s => s.trim()).filter(Boolean);
+      if (h) sizeAttr = ` style="max-width: min(${w}px, 100%); max-height: min(${h}px, 100%)"`;
+      else if (w) sizeAttr = ` style="max-width: min(${w}px, 100%)"`;
+    }
+    const alt = path.parse(destName).name.replace(/"/g, '&quot;');
+    return `<img src="/dist/images/${destName}" alt="${alt}"${sizeAttr}>`;
+  });
 }
 
 function isExcluded(filePath, brainDir, excludedFolders) {
@@ -133,10 +190,12 @@ function parseConfig() {
     process.exit(1);
   }
   const excludedFolders = excludeStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
-  return { brainDir, excludedFolders };
+  const imagesPath = process.env.BRAIN_IMAGES_PATH;
+  const imagesDir = imagesPath ? path.resolve(process.cwd(), imagesPath) : null;
+  return { brainDir, excludedFolders, imagesDir };
 }
 
-function exportBrain(brainDir, excludedFolders) {
+function exportBrain(brainDir, excludedFolders, imagesDir = null) {
   const allFiles = findMarkdownFiles(brainDir);
   const pathToId = new Map();
   const idToPath = new Map();
@@ -158,6 +217,7 @@ function exportBrain(brainDir, excludedFolders) {
 
   const included = allFiles.filter(f => !isExcluded(f, brainDir, excludedFolders));
   const notes = [];
+  const imageMap = imagesDir ? buildImageMap(imagesDir) : null;
 
   for (const filePath of included) {
     let content = fs.readFileSync(filePath, 'utf-8');
@@ -166,6 +226,7 @@ function exportBrain(brainDir, excludedFolders) {
     content = addCategoryLinks(content, tags, pathToId.get(filePath), titleToId, idToTitle);
     const links = extractLinks(content);
     content = removeLeadingTagLinks(content);
+    content = resolveImagesInContent(content, imageMap, DIST_IMAGES_DIR);
 
     const id = pathToId.get(filePath);
     const title = path.parse(filePath).name;
@@ -206,5 +267,5 @@ function exportBrain(brainDir, excludedFolders) {
   console.log(`Exported ${notes.length} notes to ${OUTPUT_FILE}`);
 }
 
-const { brainDir, excludedFolders } = parseConfig();
-exportBrain(brainDir, excludedFolders);
+const { brainDir, excludedFolders, imagesDir } = parseConfig();
+exportBrain(brainDir, excludedFolders, imagesDir);

@@ -35,7 +35,9 @@
     #panel-scroll {
       flex: 1;
       min-height: 0;
+      min-width: 0;
       overflow-y: auto;
+      overflow-x: hidden;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: thin;
       scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
@@ -73,13 +75,14 @@
       white-space: nowrap;
     }
     #panel .meta { font-size: 0.8rem; color: #666; margin-bottom: 0.75rem; padding-bottom: 0.75rem; border-bottom: 1px solid rgba(0, 0, 0, 0.1); }
-    #panel .content { font-size: 0.9rem; line-height: 1.5; word-break: break-word; }
-    #panel .content p { margin: 0 0 0.5em; }
+    #panel .content { font-size: 0.9rem; line-height: 1.5; word-break: break-word; width: 100%; max-width: 100%; overflow: hidden; box-sizing: border-box; }
+    #panel .content p { margin: 0 0 0.5em; min-width: 0; overflow: hidden; }
     #panel .content p:last-child { margin-bottom: 0; }
     #panel .content ul, #panel .content ol { margin: 0.5em 0; padding-left: 1.5em; }
     #panel .content h1, #panel .content h2, #panel .content h3 { margin: 1em 0 0.25em; font-size: inherit; font-weight: 600; }
     #panel .content a[href^="#n-"] { color: #0066cc; text-decoration: none; }
     #panel .content a[href^="#n-"]:hover { text-decoration: underline; }
+    #panel .content img { max-width: 100vw; width: auto; height: auto; display: block; margin: 0.5em 0; }
     #panel .close {
       flex-shrink: 0;
       min-width: 44px; min-height: 44px;
@@ -92,6 +95,10 @@
     #panel .close:hover, #panel .close:active { color: #1a1a1a; }
     #panel-content {
       padding: 1rem max(1rem, env(safe-area-inset-right)) max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+      min-width: 0;
+      width: 100%;
+      max-width: 100%;
+      box-sizing: border-box;
     }
     .node { cursor: pointer; }
     .node:hover { stroke: #fff; stroke-width: 2px; }

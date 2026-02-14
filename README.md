@@ -19,6 +19,7 @@ Converts Obsidian markdown notes to a structured format and renders them as a fo
 
 1. Copy `.env.example` to `.env` and configure:
    - `BRAIN_PATH` - Path to your Obsidian brain folder (absolute or relative to project root)
+   - `BRAIN_IMAGES_PATH` - Path to folder containing images for notes; enables ![[image]] and ![[image|size]] wikilinks
    - `EXCLUDED_FOLDERS` - Comma-separated top-level folders to exclude (e.g. `Me`, `Private`)
 
 2. Build:
