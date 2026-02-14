@@ -82,7 +82,9 @@ function resolveImagesInContent(content, imageMap, distImagesDir) {
   fs.mkdirSync(distImagesDir, { recursive: true });
   return content.replace(REGEX.imageWikilink, (match, inner) => {
     const [namePart, sizePart] = inner.split('|').map(s => s?.trim());
-    const srcPath = resolveImagePath(namePart || inner, imageMap);
+    const raw = namePart || inner;
+    const basename = raw.includes('/') ? raw.split(/[/\\]/).pop() : raw;
+    const srcPath = resolveImagePath(basename, imageMap);
     if (!srcPath) return '';
     const destName = path.basename(srcPath);
     const destPath = path.join(distImagesDir, destName);
