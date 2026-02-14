@@ -6,7 +6,7 @@
   "scripts": {
     "start": "pnpm build && serve",
     "build": "node scripts/obsidian-to-brain.js",
-    "sync-velora": "scp index.html velora:second-brain/index.html && scp dist/brain.json velora:second-brain/dist/brain.json"
+    "sync-velora": "scp index.html velora:second-brain/index.html && scp -r dist velora:second-brain/"
   },
   "keywords": [
     "knowledge-base",
