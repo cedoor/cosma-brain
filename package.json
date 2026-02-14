@@ -4,7 +4,7 @@
   "description": "Second brain knowledge base with D3 visualization",
   "main": "index.js",
   "scripts": {
-    "start": "pnpm build:without-me && serve",
+    "start": "pnpm build && serve",
     "build": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" ",
     "build:without-me": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" me",
     "sync-velora": "scp index.html velora:second-brain/index.html && scp dist/brain.json velora:second-brain/dist/brain.json"
