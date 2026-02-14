@@ -154,7 +154,7 @@ fetch('/dist/brain.json?' + Date.now())
     c === '#e31a1c' ? '#17becf' : c === '#fb9a99' ? '#8c564b' : c
   );
   const color = d3.scaleOrdinal(palette);
-  color.domain([...new Set(notes.map(n => mainField(n)))]);
+  color.domain([...new Set(notes.map(n => mainField(n)))].sort());
 
   const w = graphEl.clientWidth || window.innerWidth;
   const h = graphEl.clientHeight || window.innerHeight;
