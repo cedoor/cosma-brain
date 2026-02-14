@@ -5,14 +5,19 @@
   "main": "index.js",
   "scripts": {
     "start": "pnpm build && serve",
-    "build": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" ",
-    "build:without-me": "node scripts/obsidian-to-brain.js \"../obsidian/1 - Notes/Learning/Brain/\" me",
+    "build": "node scripts/obsidian-to-brain.js",
     "sync-velora": "scp index.html velora:second-brain/index.html && scp dist/brain.json velora:second-brain/dist/brain.json"
   },
-  "keywords": ["knowledge-base", "obsidian", "d3", "visualization"],
+  "keywords": [
+    "knowledge-base",
+    "obsidian",
+    "d3",
+    "visualization"
+  ],
   "author": "Omar Desogus <me@cedoor.dev>",
   "license": "MIT",
   "devDependencies": {
+    "dotenv": "^17.3.1",
     "serve": "^14.2.4"
   }
 }

@@ -2,8 +2,10 @@
 /**
  * Convert Obsidian brain notes directly to brain.json.
  * Reads Obsidian vault, resolves wikilinks, exports note graph for D3 viz.
+ * Requires BRAIN_PATH and EXCLUDED_FOLDERS in .env.
  */
 
+require('dotenv').config();
 const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
@@ -118,21 +120,19 @@ function bodyToReadable(body, idToTitle) {
   }).replace(/\n{3,}/g, '\n\n').trim();
 }
 
-function parseArgs() {
-  const args = process.argv.slice(2);
-  const pathArg = args[0];
-  const excludeArg = args[1] ?? 'me';
-  if (!pathArg) {
-    console.error('Usage: node obsidian-to-brain.js <obsidian-brain-folder> [excluded-folders]');
-    console.error('  excluded-folders: comma-separated, default: me');
+function parseConfig() {
+  const brainPath = process.env.BRAIN_PATH;
+  const excludeStr = process.env.EXCLUDED_FOLDERS ?? '';
+  if (!brainPath) {
+    console.error('Missing BRAIN_PATH in .env. Copy .env.example to .env and set your Obsidian brain folder.');
     process.exit(1);
   }
-  const brainDir = path.resolve(pathArg);
+  const brainDir = path.resolve(process.cwd(), brainPath);
   if (!fs.existsSync(brainDir) || !fs.statSync(brainDir).isDirectory()) {
     console.error(`Error: Folder does not exist: ${brainDir}`);
     process.exit(1);
   }
-  const excludedFolders = excludeArg.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+  const excludedFolders = excludeStr.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
   return { brainDir, excludedFolders };
 }
 
@@ -206,5 +206,5 @@ function exportBrain(brainDir, excludedFolders) {
   console.log(`Exported ${notes.length} notes to ${OUTPUT_FILE}`);
 }
 
-const { brainDir, excludedFolders } = parseArgs();
+const { brainDir, excludedFolders } = parseConfig();
 exportBrain(brainDir, excludedFolders);

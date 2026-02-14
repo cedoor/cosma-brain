@@ -17,11 +17,9 @@ Converts Obsidian markdown notes to a structured format and renders them as a fo
 
 ## Setup
 
-1. Set the Obsidian vault path in `package.json`:
-
-```json
-"build": "node scripts/obsidian-to-brain.js \"<path-to-your-obsidian-brain-folder>\""
-```
+1. Copy `.env.example` to `.env` and configure:
+   - `BRAIN_PATH` - Path to your Obsidian brain folder (absolute or relative to project root)
+   - `EXCLUDED_FOLDERS` - Comma-separated top-level folders to exclude (e.g. `Me`, `Private`)
 
 2. Build:
 
@@ -29,24 +27,14 @@ Converts Obsidian markdown notes to a structured format and renders them as a fo
 pnpm build
 ```
 
-3. Run `pnpm start` (builds and starts a local server) or `pnpm dev` (serves without building).
+3. Run `pnpm start` (builds and starts a local server).
 
 The build writes `dist/brain.json`; `index.html` loads it via fetch.
 
 ## Available Scripts
 
-- `pnpm build` - Read Obsidian vault, generate dist/brain.json
-- `pnpm build:without-me` - Same as build but excludes the `me` folder
-- `pnpm start` - Build, sync to velora, and start local server
-- `pnpm dev` - Start local server only (no build)
-
-## Script Usage
-
-```
-node scripts/obsidian-to-brain.js <obsidian-brain-folder> [excluded-folders]
-```
-
-- `excluded-folders`: Comma-separated top-level folders to exclude (default: `me`)
+- `pnpm build` - Read Obsidian vault, generate dist/brain.json (uses BRAIN_PATH and EXCLUDED_FOLDERS from .env)
+- `pnpm start` - Build and start local server
 
 ## Project Structure
 
