@@ -24,7 +24,6 @@ const REGEX = {
   wikilink: /(!?)\[\[([^\]]+)\]\]/g,
   imageWikilink: /!\[\[([^\]]+)\]\]/g,
   linkId: /!?\[\[(\d{14}(?:-[a-f0-9]{4})?)(?:\|([^\]]+))?\]\]/g,
-  linkIdExtract: /\[\[(\d{14}(?:-[a-f0-9]{4})?)/,
   leadingLinks: /^(\[\[[^\]]+\]\]\s*)+/,
 };
 
@@ -124,13 +123,12 @@ function recordType(tags, filePath, inputDir) {
   return parts.length > 1 ? parts[parts.length - 2].toLowerCase().replace(/\s+/g, '-') : DEFAULT_RECORD_TYPE;
 }
 
-function resolveLinks(content, titleToId) {
-  const ci = new Map([...titleToId].map(([k, v]) => [k.toLowerCase(), v]));
+function resolveLinks(content, titleToId, titleToIdCi) {
   return content.replace(REGEX.wikilink, (match, isImage, linkText) => {
     if (isImage) return match;
     const [raw, display] = linkText.split('|').map(s => s?.trim());
     const target = path.parse(raw || linkText).name;
-    const id = titleToId.get(target) ?? ci.get(target?.toLowerCase());
+    const id = titleToId.get(target) ?? titleToIdCi.get(target?.toLowerCase());
     if (id) return `[[${id}|${display || target}]]`;
     return match;
   });
@@ -164,10 +162,9 @@ function removeLeadingTagLinks(content) {
 
 function extractLinks(body) {
   const links = [];
-  body.replace(REGEX.linkId, (match, id, display) => {
-    if (!match.startsWith('!')) links.push({ targetId: id, displayText: display || id });
-    return '';
-  });
+  for (const m of body.matchAll(REGEX.linkId)) {
+    if (!m[0].startsWith('!')) links.push({ targetId: m[1], displayText: m[2] || m[1] });
+  }
   return links;
 }
 
@@ -211,10 +208,12 @@ function exportBrain(brainDir, excludedFolders, imagesDir = null) {
   }
   const titleToId = new Map();
   const idToTitle = new Map();
+  const titleToIdCi = new Map();
   for (const [fp, id] of pathToId) {
     const title = path.parse(fp).name;
     titleToId.set(title, id);
     idToTitle.set(id, title);
+    titleToIdCi.set(title.toLowerCase(), id);
   }
 
   const included = allFiles.filter(f => !isExcluded(f, brainDir, excludedFolders));
@@ -224,7 +223,7 @@ function exportBrain(brainDir, excludedFolders, imagesDir = null) {
   for (const filePath of included) {
     let content = fs.readFileSync(filePath, 'utf-8');
     const { tags, content: body } = extractTags(content);
-    content = resolveLinks(body, titleToId);
+    content = resolveLinks(body, titleToId, titleToIdCi);
     content = addCategoryLinks(content, tags, pathToId.get(filePath), titleToId, idToTitle);
     const links = extractLinks(content);
     content = removeLeadingTagLinks(content);
